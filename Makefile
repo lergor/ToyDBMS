@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wno-deprecated-register -O0 -g -Wall -std=c++14 #-DDBSCANDEBUG
+CXXFLAGS = -Wno-deprecated-register -O3 -g -Wall -std=c++14 #-DDBSCANDEBUG
 
 PARSEROBJ   = parser/parser.o parser/lexer.o parser/query.o
 OPERATOROBJ = operators/datasource.o operators/join.o

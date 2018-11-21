@@ -40,10 +40,15 @@ namespace ToyDBMS {
 
     struct AttributePredicate : public Predicate {
         std::string left, right;
+        std::string left_table, right_table;
         Relation relation;
 
         AttributePredicate(std::string left, std::string right, Relation rel)
-            : Predicate(Type::ATTR), left(std::move(left)), right(std::move(right)), relation(rel) {}
+            : Predicate(Type::ATTR), left(std::move(left)), right(std::move(right)), relation(rel)
+        {
+            this->left_table = this->left.substr(0, this->left.find("."));
+            this->right_table = this->right.substr(0, this->right.find("."));
+        }
 
         void print() override;
         bool check(const Row &row) override;

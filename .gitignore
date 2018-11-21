@@ -1,0 +1,56 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# CMake
+cmake-build-*/
+
+# IntelliJ
+out/
+
+.idea
+
+parsertestexe
+plannertestexe
+testexe
+
+compile_commands.json
+
+parser/dblexer.yy.cc
+parser/dbparser.output
+parser/dbparser.tab.cc
+parser/dbparser.tab.hh
+parser/location.hh
+parser/position.hh
+parser/stack.hh
+
+*.zip
