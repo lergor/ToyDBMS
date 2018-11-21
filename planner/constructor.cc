@@ -86,6 +86,9 @@ namespace ToyDBMS {
             );
         }
 
+        std::vector<bool> visited(sources.size(), false);
+        std::unique_ptr <Operator> result = nullptr;
+
         if (query.where) {
             for_each_filter(*query.where, [&sources](const auto &pred) {
                 std::string table = table_name(pred.attribute);
@@ -104,58 +107,66 @@ namespace ToyDBMS {
                 }
                 if (!found) throw std::runtime_error("couldn't find a source for a predicate");
             });
-
-            auto joins = find_joins(*query.where);
-            if (joins.size()) {
-                std::unordered_map <std::string, size_t> name_to_index;
-                for (size_t i = 0; i < sources.size(); ++i) {
-                    name_to_index[sources[i].table] = i;
-                }
-
-                std::unordered_map <std::string,
-                std::set<const AttributePredicate *>> table_name_to_joins;
-
-                std::vector<bool> visited(sources.size(), false);
-
-                size_t cur_index = sources.size();
-                for (auto &join : joins) {
-                    table_name_to_joins[join->left_table].insert(join);
-                    table_name_to_joins[join->right_table].insert(join);
-                    cur_index = std::min(
-                            std::min(name_to_index[join->left_table], cur_index),
-                            name_to_index[join->right_table]);
-                }
-
-                std::string cur_table;
-                std::unique_ptr <Operator> result = sources[cur_index].construct();
-                visited[cur_index] = true;
-
-                while (cur_index < sources.size()) {
-                    cur_table = sources[cur_index].table;
-                    if (table_name_to_joins[cur_table].empty() || !visited[cur_index]) {
-                        ++cur_index;
-                    } else {
-                        const AttributePredicate *join = *(table_name_to_joins[cur_table].begin());
-                        std::string table_to_join = (cur_table == join->left_table) ? join->right_table
-                                                                                    : join->left_table;
-                        std::string left = join->left;
-                        std::string right = join->right;
-                        if (cur_table != join->left_table) std::swap(left, right);
-
-                        size_t index = name_to_index[table_to_join];
-                        if (index < cur_index) {
-                            cur_index = index;
-                        }
-                        visited[index] = true;
-                        result = std::make_unique<NLJoin>(std::move(result), sources[index].construct(),
-                                                          left, right);
-                        table_name_to_joins[cur_table].erase(join);
-                        table_name_to_joins[table_to_join].erase(join);
-                    }
-                }
-                return std::move(result);
-            }
         }
-        return sources.front().construct();
+        std::vector<const AttributePredicate *> joins;
+        if (query.where) {
+            joins = find_joins(*query.where);
+        }
+        std::unordered_map <std::string, size_t> name_to_index;
+        for (size_t i = 0; i < sources.size(); ++i) {
+            name_to_index[sources[i].table] = i;
+        }
+
+        std::unordered_map <std::string,
+        std::set<const AttributePredicate *>> table_name_to_joins;
+
+        size_t cur_index = sources.size();
+        for (auto &join : joins) {
+            table_name_to_joins[join->left_table].insert(join);
+            table_name_to_joins[join->right_table].insert(join);
+            cur_index = std::min(
+                    std::min(name_to_index[join->left_table], cur_index),
+                    name_to_index[join->right_table]);
+        }
+        if (cur_index == sources.size()) cur_index = 0;
+
+        std::string cur_table;
+        result = sources[cur_index].construct();
+        visited[cur_index] = true;
+        while (true) {
+            while (cur_index < sources.size()) {
+                cur_table = sources[cur_index].table;
+                if (table_name_to_joins[cur_table].empty() || !visited[cur_index]) {
+                    ++cur_index;
+                } else {
+                    const AttributePredicate *join = *(table_name_to_joins[cur_table].begin());
+                    std::string table_to_join = (cur_table == join->left_table) ? join->right_table
+                                                                                : join->left_table;
+                    std::string left = join->left;
+                    std::string right = join->right;
+                    if (cur_table != join->left_table) std::swap(left, right);
+
+                    size_t index = name_to_index[table_to_join];
+                    if (index < cur_index) {
+                        cur_index = index;
+                    }
+                    visited[index] = true;
+                    result = std::make_unique<NLJoin>(std::move(result), sources[index].construct(),
+                                                      left, right);
+                    table_name_to_joins[cur_table].erase(join);
+                    table_name_to_joins[table_to_join].erase(join);
+                }
+            }
+            for (size_t j = 0; j < visited.size(); ++j) {
+                if (!visited[j]) {
+                    result = std::make_unique<CrossJoin>(std::move(result), sources[j].construct());
+                    visited[j] = true;
+                    cur_index = j;
+                    break;
+                }
+            }
+            if (cur_index == sources.size()) break;
+        }
+        return std::move(result);
     }
 }
