@@ -54,3 +54,9 @@ parser/position.hh
 parser/stack.hh
 
 *.zip
+*.swp
+
+parsertestexe
+plannertestexe
+operatorstestexe
+catalogtestexe

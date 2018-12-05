@@ -1,0 +1,1 @@
+select employees.id, employees.salary, departments.manager from employees, departments where employees.id = departments.manager and employees.id = departments.id;
