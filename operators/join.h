@@ -55,6 +55,4 @@ namespace ToyDBMS {
         Row next() override;
         void reset() override;
     };
-
-
 }

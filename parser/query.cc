@@ -56,7 +56,20 @@ void AttributePredicate::print(){
 }
 
 bool AttributePredicate::check(const Row &row){
-    throw std::runtime_error("not implemented");
+    int left_ix = row.header->index(left);
+    int right_ix = row.header->index(right);
+    Value left_value = row.values[left_ix];
+    Value right_value = row.values[right_ix];
+    switch(relation){
+        case Relation::GREATER:
+            return left_value > right_value;
+        case Relation::EQUAL:
+            return left_value == right_value;
+        case Relation::LESS:
+            return left_value < right_value;
+        default:
+            throw std::runtime_error("not implemented");
+    }
 }
 
 void QueryPredicate::print(){

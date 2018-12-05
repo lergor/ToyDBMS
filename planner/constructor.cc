@@ -10,6 +10,7 @@
 #include "../operators/datasource.h"
 #include "../operators/filter.h"
 #include "../operators/join.h"
+#include "../operators/projection.h"
 
 namespace ToyDBMS {
 
@@ -119,7 +120,6 @@ namespace ToyDBMS {
 
         std::unordered_map <std::string,
         std::set<const AttributePredicate *>> table_name_to_joins;
-
         size_t cur_index = sources.size();
         for (auto &join : joins) {
             table_name_to_joins[join->left_table].insert(join);
@@ -150,9 +150,14 @@ namespace ToyDBMS {
                     if (index < cur_index) {
                         cur_index = index;
                     }
-                    visited[index] = true;
-                    result = std::make_unique<NLJoin>(std::move(result), sources[index].construct(),
-                                                      left, right);
+                    if(visited[index]) {
+                        result = std::make_unique<Filter>(std::move(result),
+                                                          std::make_unique<AttributePredicate>(join->left, join->right, join->relation));
+                    } else {
+                        visited[index] = true;
+                        result = std::make_unique<NLJoin>(std::move(result), sources[index].construct(),
+                                                          left, right);
+                    }
                     table_name_to_joins[cur_table].erase(join);
                     table_name_to_joins[table_to_join].erase(join);
                 }
@@ -166,6 +171,15 @@ namespace ToyDBMS {
                 }
             }
             if (cur_index == sources.size()) break;
+        }
+        if (query.selection.type == SelectionClause::Type::LIST) {
+            std::vector<std::string> selection_parts;
+            for (auto& p : query.selection.attrs) {
+                selection_parts.push_back(p.attribute);
+            }
+            if(selection_parts.size()) {
+                result = std::make_unique<Projection>(std::move(result), selection_parts);
+            }
         }
         return std::move(result);
     }
